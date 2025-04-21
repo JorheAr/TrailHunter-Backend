@@ -12,8 +12,8 @@ def register_user(data):
     # Crear el nuevo usuario
     new_user = Usuario(
         username=data["username"],
-        email=data["email"],  # El email ya no requiere verificar duplicados
-        rol=data.get("rol", "usuario")  # opcional, por defecto "usuario"
+        email=data["email"],
+        rol=data.get("rol", "usuario")
     )
     new_user.set_password(data["password"])
 
