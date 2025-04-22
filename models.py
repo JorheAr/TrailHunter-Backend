@@ -18,6 +18,7 @@ class Usuario(db.Model):
     email = db.Column(db.String(100), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     fecha_registro = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
+    verificado = db.Column(db.Boolean, default=False)
 
     rol = db.Column(db.String(20), nullable=False, default='usuario')
 

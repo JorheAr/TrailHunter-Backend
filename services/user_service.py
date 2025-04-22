@@ -1,4 +1,6 @@
-from models import db, Usuario
+from models import db, Usuario, Cliente
+from utils.token_utils import generate_verification_token, confirm_verification_token
+from services.email_service import send_verification_email
 
 def follow_user(current_user_id, target_user_id):
     current_user = Usuario.query.get(current_user_id)
@@ -44,3 +46,61 @@ def get_follow_stats(current_user_id):
         "seguidores": followers_count,
         "seguidos": following_count
     }, 200
+
+def request_verification_email(user_id):
+    user = Usuario.query.get(user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    if getattr(user, "verificado", False):
+        return {"message": "La cuenta ya está verificada"}, 400
+
+    token = generate_verification_token(user.email)
+    send_verification_email(user.email, token)
+
+    return {"message": "Correo de verificación enviado"}, 200
+
+def verify_email_token(token):
+    email = confirm_verification_token(token)
+    if not email:
+        return {"message": "Token inválido o expirado"}, 400
+
+    user = Usuario.query.filter_by(email=email).first()
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    if user.verificado:
+        return {"message": "La cuenta ya estaba verificada"}, 200
+
+    user.verificado = True
+    db.session.commit()
+    return {"message": "Cuenta verificada correctamente"}, 200
+
+def get_usuario_actual(user_id):
+    user = Usuario.query.get(user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    # Serializar datos básicos
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "verificado": user.verificado,
+        "rol": user.rol,
+        "fecha_registro": user.fecha_registro.isoformat() if user.fecha_registro else None,
+    }
+
+    # Añadir info de cliente si existe
+    if user.cliente:
+        user_data["cliente"] = {
+            "nombre": user.cliente.nombre,
+            "apellidos": user.cliente.apellidos,
+            "fecha_nacimiento": user.cliente.fecha_nacimiento.isoformat()
+        }
+    else:
+        user_data["cliente"] = None
+
+    return user_data, 200
