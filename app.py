@@ -21,7 +21,7 @@ migrate = Migrate(app, db)
 
 # Configuración de JWT
 app.config['JWT_SECRET_KEY'] = 'your-secret-key'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
 
 jwt = JWTManager(app)
 
