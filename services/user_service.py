@@ -175,3 +175,59 @@ def get_usuario_by_id(user_id, current_user_id=None):
         user_data["cliente"] = None
 
     return user_data, 200
+
+def get_seguidores(current_user_id):
+    user = Usuario.query.get(current_user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    # Obtener los seguidores del usuario
+    seguidores = user.followers.all()
+
+    # Serializar la información de los seguidores
+    seguidores_data = []
+    for follower in seguidores:
+        seguidores_data.append({
+            "id": follower.id,
+            "username": follower.username,
+            "email": follower.email,
+            "verificado": follower.verificado,
+            "rol": follower.rol,
+            "fecha_registro": follower.fecha_registro.isoformat() if follower.fecha_registro else None,
+            "cliente": {
+                "nombre": follower.cliente.nombre if follower.cliente else None,
+                "apellidos": follower.cliente.apellidos if follower.cliente else None,
+                "fecha_nacimiento": follower.cliente.fecha_nacimiento.isoformat() if follower.cliente else None
+            }
+        })
+
+    return {"seguidores": seguidores_data}, 200
+
+def get_seguidos(current_user_id):
+    user = Usuario.query.get(current_user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    # Obtener los seguidos por el usuario
+    seguidos = user.followed.all()
+
+    # Serializar la información de los seguidos
+    seguidos_data = []
+    for followed in seguidos:
+        seguidos_data.append({
+            "id": followed.id,
+            "username": followed.username,
+            "email": followed.email,
+            "verificado": followed.verificado,
+            "rol": followed.rol,
+            "fecha_registro": followed.fecha_registro.isoformat() if followed.fecha_registro else None,
+            "cliente": {
+                "nombre": followed.cliente.nombre if followed.cliente else None,
+                "apellidos": followed.cliente.apellidos if followed.cliente else None,
+                "fecha_nacimiento": followed.cliente.fecha_nacimiento.isoformat() if followed.cliente else None
+            }
+        })
+
+    return {"seguidos": seguidos_data}, 200

@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.user_service import follow_user, unfollow_user, get_follow_stats, request_verification_email, \
-    get_usuario_actual, verify_email_token, get_all_users, get_usuario_by_id
+    get_usuario_actual, verify_email_token, get_all_users, get_usuario_by_id, get_seguidores, get_seguidos
 
 
 @jwt_required()
@@ -56,3 +56,13 @@ def obtener_usuarios():
 def obtener_usuario_por_id(user_id):
     current_user_id = get_jwt_identity()
     return get_usuario_by_id(user_id, current_user_id)
+
+@jwt_required()
+def obtener_seguidores():
+    current_user_id = get_jwt_identity()
+    return get_seguidores(current_user_id)
+
+@jwt_required()
+def obtener_seguidos():
+    current_user_id = get_jwt_identity()
+    return get_seguidos(current_user_id)
