@@ -56,19 +56,19 @@ def request_verification_email(user_id):
     if getattr(user, "verificado", False):
         return {"message": "La cuenta ya está verificada"}, 400
 
-    token = generate_verification_token(user.email)
+    token = generate_verification_token(user.email, user.id)
     send_verification_email(user.email, token)
 
     return {"message": "Correo de verificación enviado"}, 200
 
 def verify_email_token(token):
-    email = confirm_verification_token(token)
-    if not email:
+    data = confirm_verification_token(token)
+    if not data:
         return {"message": "Token inválido o expirado"}, 400
 
-    user = Usuario.query.filter_by(email=email).first()
-    if not user:
-        return {"message": "Usuario no encontrado"}, 404
+    user = Usuario.query.get(data["user_id"])
+    if not user or user.email != data["email"]:
+        return {"message": "Usuario no encontrado o email no coincide"}, 404
 
     if user.verificado:
         return {"message": "La cuenta ya estaba verificada"}, 200
