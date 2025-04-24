@@ -56,19 +56,19 @@ def request_verification_email(user_id):
     if getattr(user, "verificado", False):
         return {"message": "La cuenta ya está verificada"}, 400
 
-    token = generate_verification_token(user.email)
+    token = generate_verification_token(user.email, user.id)
     send_verification_email(user.email, token)
 
     return {"message": "Correo de verificación enviado"}, 200
 
 def verify_email_token(token):
-    email = confirm_verification_token(token)
-    if not email:
+    data = confirm_verification_token(token)
+    if not data:
         return {"message": "Token inválido o expirado"}, 400
 
-    user = Usuario.query.filter_by(email=email).first()
-    if not user:
-        return {"message": "Usuario no encontrado"}, 404
+    user = Usuario.query.get(data["user_id"])
+    if not user or user.email != data["email"]:
+        return {"message": "Usuario no encontrado o email no coincide"}, 404
 
     if user.verificado:
         return {"message": "La cuenta ya estaba verificada"}, 200
@@ -104,3 +104,130 @@ def get_usuario_actual(user_id):
         user_data["cliente"] = None
 
     return user_data, 200
+
+def get_all_users(current_user_id=None):
+    users = Usuario.query.all()
+
+    if not users:
+        return {"message": "No se encontraron usuarios"}, 404
+
+    current_user = Usuario.query.get(current_user_id) if current_user_id else None
+    users_data = []
+
+    for user in users:
+        if current_user and user.id == current_user.id:
+            continue
+
+        is_following = current_user.is_following(user) if current_user else False
+
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "verificado": user.verificado,
+            "rol": user.rol,
+            "fecha_registro": user.fecha_registro.isoformat() if user.fecha_registro else None,
+            "is_following": is_following
+        }
+
+        if user.cliente:
+            user_data["cliente"] = {
+                "nombre": user.cliente.nombre,
+                "apellidos": user.cliente.apellidos,
+                "fecha_nacimiento": user.cliente.fecha_nacimiento.isoformat()
+            }
+        else:
+            user_data["cliente"] = None
+
+        users_data.append(user_data)
+
+    return {"usuarios": users_data}, 200
+
+def get_usuario_by_id(user_id, current_user_id=None):
+    user = Usuario.query.get(user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    is_following = False
+    if current_user_id and current_user_id != user.id:
+        current_user = Usuario.query.get(current_user_id)
+        if current_user:
+            is_following = current_user.is_following(user)
+
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "verificado": user.verificado,
+        "rol": user.rol,
+        "fecha_registro": user.fecha_registro.isoformat() if user.fecha_registro else None,
+        "is_following": is_following
+    }
+
+    if user.cliente:
+        user_data["cliente"] = {
+            "nombre": user.cliente.nombre,
+            "apellidos": user.cliente.apellidos,
+            "fecha_nacimiento": user.cliente.fecha_nacimiento.isoformat()
+        }
+    else:
+        user_data["cliente"] = None
+
+    return user_data, 200
+
+def get_seguidores(current_user_id):
+    user = Usuario.query.get(current_user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    # Obtener los seguidores del usuario
+    seguidores = user.followers.all()
+
+    # Serializar la información de los seguidores
+    seguidores_data = []
+    for follower in seguidores:
+        seguidores_data.append({
+            "id": follower.id,
+            "username": follower.username,
+            "email": follower.email,
+            "verificado": follower.verificado,
+            "rol": follower.rol,
+            "fecha_registro": follower.fecha_registro.isoformat() if follower.fecha_registro else None,
+            "cliente": {
+                "nombre": follower.cliente.nombre if follower.cliente else None,
+                "apellidos": follower.cliente.apellidos if follower.cliente else None,
+                "fecha_nacimiento": follower.cliente.fecha_nacimiento.isoformat() if follower.cliente else None
+            }
+        })
+
+    return {"seguidores": seguidores_data}, 200
+
+def get_seguidos(current_user_id):
+    user = Usuario.query.get(current_user_id)
+
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    # Obtener los seguidos por el usuario
+    seguidos = user.followed.all()
+
+    # Serializar la información de los seguidos
+    seguidos_data = []
+    for followed in seguidos:
+        seguidos_data.append({
+            "id": followed.id,
+            "username": followed.username,
+            "email": followed.email,
+            "verificado": followed.verificado,
+            "rol": followed.rol,
+            "fecha_registro": followed.fecha_registro.isoformat() if followed.fecha_registro else None,
+            "cliente": {
+                "nombre": followed.cliente.nombre if followed.cliente else None,
+                "apellidos": followed.cliente.apellidos if followed.cliente else None,
+                "fecha_nacimiento": followed.cliente.fecha_nacimiento.isoformat() if followed.cliente else None
+            }
+        })
+
+    return {"seguidos": seguidos_data}, 200
