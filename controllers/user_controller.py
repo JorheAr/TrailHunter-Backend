@@ -1,7 +1,9 @@
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from services.user_service import follow_user, unfollow_user, get_follow_stats, request_verification_email, \
-    get_usuario_actual, verify_email_token, get_all_users, get_usuario_by_id, get_seguidores, get_seguidos
+from services.user_service import (follow_user, unfollow_user, get_follow_stats, request_verification_email, \
+                                   get_usuario_actual, verify_email_token, get_all_users, get_usuario_by_id,
+                                   get_seguidores, get_seguidos,
+                                   block_user, unblock_user, get_blocked_users)
 
 
 @jwt_required()
@@ -17,6 +19,20 @@ def unfollow():
     data = request.get_json()
     target_user_id = data.get("user_id")
     return unfollow_user(current_user_id, target_user_id)
+
+@jwt_required()
+def block():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    target_user_id = data.get("user_id")
+    return block_user(current_user_id, target_user_id)
+
+@jwt_required()
+def unblock():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    target_user_id = data.get("user_id")
+    return unblock_user(current_user_id, target_user_id)
 
 @jwt_required()
 def follow_stats():
@@ -66,3 +82,8 @@ def obtener_seguidores():
 def obtener_seguidos():
     current_user_id = get_jwt_identity()
     return get_seguidos(current_user_id)
+
+@jwt_required()
+def get_blocked():
+    current_user_id = get_jwt_identity()
+    return get_blocked_users(current_user_id)
