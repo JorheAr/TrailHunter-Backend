@@ -3,11 +3,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
-# Tabla intermedia para la relación de "seguidores"
 followers = db.Table(
     'followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('usuarios.id')),
     db.Column('followed_id', db.Integer, db.ForeignKey('usuarios.id'))
+)
+
+bloqueos = db.Table(
+    'bloqueos',
+    db.Column('bloqueador_id', db.Integer, db.ForeignKey('usuarios.id')),
+    db.Column('bloqueado_id', db.Integer, db.ForeignKey('usuarios.id'))
 )
 
 class Usuario(db.Model):
@@ -19,13 +24,10 @@ class Usuario(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     fecha_registro = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
     verificado = db.Column(db.Boolean, default=False)
-
     rol = db.Column(db.String(20), nullable=False, default='usuario')
 
-    # Relación uno a uno con Cliente
     cliente = db.relationship("Cliente", backref="usuario", uselist=False)
 
-    # Relación muchos-a-muchos: usuarios que este usuario sigue
     followed = db.relationship(
         'Usuario', secondary=followers,
         primaryjoin=(followers.c.follower_id == id),
@@ -34,14 +36,20 @@ class Usuario(db.Model):
         lazy='dynamic'
     )
 
-    # Métodos de autenticación
+    bloqueados = db.relationship(
+        'Usuario', secondary=bloqueos,
+        primaryjoin=(bloqueos.c.bloqueador_id == id),
+        secondaryjoin=(bloqueos.c.bloqueado_id == id),
+        backref=db.backref('bloqueadores', lazy='dynamic'),
+        lazy='dynamic'
+    )
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    # Métodos para seguir/seguir
     def follow(self, user):
         if not self.is_following(user):
             self.followed.append(user)
@@ -56,6 +64,21 @@ class Usuario(db.Model):
     def is_followed_by(self, user):
         return self.followers.filter(followers.c.follower_id == user.id).count() > 0
 
+    def block(self, user):
+        if not self.has_blocked(user):
+            self.unfollow(user)
+            user.unfollow(self)
+            self.bloqueados.append(user)
+
+    def unblock(self, user):
+        if self.has_blocked(user):
+            self.bloqueados.remove(user)
+
+    def has_blocked(self, user):
+        return self.bloqueados.filter(bloqueos.c.bloqueado_id == user.id).count() > 0
+
+    def is_blocked_by(self, user):
+        return self.bloqueadores.filter(bloqueos.c.bloqueador_id == user.id).count() > 0
 
 class Cliente(db.Model):
     __tablename__ = "clientes"

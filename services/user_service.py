@@ -12,6 +12,9 @@ def follow_user(current_user_id, target_user_id):
     if current_user.id == target_user.id:
         return {"message": "No puedes seguirte a ti mismo"}, 400
 
+    if current_user.has_blocked(target_user) or target_user.has_blocked(current_user):
+        return {"message": "No puedes seguir a este usuario porque te ha bloqueado o lo tienes bloqueado"}, 403
+
     if current_user.is_following(target_user):
         return {"message": "Ya estás siguiendo a este usuario"}, 400
 
@@ -32,6 +35,31 @@ def unfollow_user(current_user_id, target_user_id):
     current_user.unfollow(target_user)
     db.session.commit()
     return {"message": f"Has dejado de seguir a {target_user.username}"}, 200
+
+def block_user(current_user_id, target_user_id):
+    current_user = Usuario.query.get(current_user_id)
+    target_user = Usuario.query.get(target_user_id)
+
+    if not current_user or not target_user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    if current_user.id == target_user.id:
+        return {"message": "No puedes bloquearte a ti mismo"}, 400
+
+    current_user.block(target_user)
+    db.session.commit()
+    return {"message": f"Has bloqueado a {target_user.username}"}, 200
+
+def unblock_user(current_user_id, target_user_id):
+    current_user = Usuario.query.get(current_user_id)
+    target_user = Usuario.query.get(target_user_id)
+
+    if not current_user or not target_user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    current_user.unblock(target_user)
+    db.session.commit()
+    return {"message": f"Has desbloqueado a {target_user.username}"}, 200
 
 def get_follow_stats(current_user_id):
     user = Usuario.query.get(current_user_id)
@@ -143,11 +171,37 @@ def get_all_users(current_user_id=None):
 
     return {"usuarios": users_data}, 200
 
-def get_usuario_by_id(user_id, current_user_id=None):
-    user = Usuario.query.get(user_id)
-
+def get_blocked_users(current_user_id):
+    user = Usuario.query.get(current_user_id)
     if not user:
         return {"message": "Usuario no encontrado"}, 404
+
+    bloqueados = user.bloqueados.all()
+
+    resultado = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "verificado": u.verificado,
+            "rol": u.rol
+        } for u in bloqueados
+    ]
+
+    return {"bloqueados": resultado}, 200
+
+def get_usuario_by_id(user_id, current_user_id=None):
+    user = Usuario.query.get(user_id)
+    if not user:
+        return {"message": "Usuario no encontrado"}, 404
+
+    is_blocking = False
+    is_blocked_by = False
+    if current_user_id and current_user_id != user.id:
+        current_user = Usuario.query.get(current_user_id)
+        if current_user:
+            is_blocking = current_user.has_blocked(user)
+            is_blocked_by = user.has_blocked(current_user)
 
     is_following = False
     if current_user_id and current_user_id != user.id:
@@ -162,7 +216,9 @@ def get_usuario_by_id(user_id, current_user_id=None):
         "verificado": user.verificado,
         "rol": user.rol,
         "fecha_registro": user.fecha_registro.isoformat() if user.fecha_registro else None,
-        "is_following": is_following
+        "is_following": is_following,
+        "is_blocking": is_blocking,
+        "is_blocked_by": is_blocked_by
     }
 
     if user.cliente:
