@@ -192,16 +192,16 @@ def get_blocked_users(current_user_id):
 
 def get_usuario_by_id(user_id, current_user_id=None):
     user = Usuario.query.get(user_id)
-
     if not user:
         return {"message": "Usuario no encontrado"}, 404
 
-    is_blocked = False
+    is_blocking = False
+    is_blocked_by = False
     if current_user_id and current_user_id != user.id:
         current_user = Usuario.query.get(current_user_id)
         if current_user:
-            if current_user.has_blocked(user) or user.has_blocked(current_user):
-                is_blocked = True
+            is_blocking = current_user.has_blocked(user)
+            is_blocked_by = user.has_blocked(current_user)
 
     is_following = False
     if current_user_id and current_user_id != user.id:
@@ -217,7 +217,8 @@ def get_usuario_by_id(user_id, current_user_id=None):
         "rol": user.rol,
         "fecha_registro": user.fecha_registro.isoformat() if user.fecha_registro else None,
         "is_following": is_following,
-        "is_blocked": is_blocked
+        "is_blocking": is_blocking,
+        "is_blocked_by": is_blocked_by
     }
 
     if user.cliente:
