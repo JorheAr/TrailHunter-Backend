@@ -4,12 +4,13 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
+from routes.caceria_routes import caceria_bp
+from routes.contacto_routes import contacto_bp
 from config import Config
 from models import db
 from routes.auth_routes import auth_bp
 from flask_cors import CORS
 from routes.user_routes import user_bp
-
 
 
 app = Flask(__name__)
@@ -28,6 +29,8 @@ jwt = JWTManager(app)
 # Registrar rutas
 app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(user_bp, url_prefix="/usuarios")
+app.register_blueprint(caceria_bp, url_prefix="/caceria")
+app.register_blueprint(contacto_bp, url_prefix="/contacto")
 
 if __name__ == "__main__":
     app.run(debug=True)
