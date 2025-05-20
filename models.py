@@ -89,3 +89,54 @@ class Cliente(db.Model):
     fecha_nacimiento = db.Column(db.Date, nullable=False)
 
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), unique=True, nullable=False)
+
+class ActividadCaceria(db.Model):
+    __tablename__ = 'actividades_caceria'
+
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(100), nullable=False)
+    descripcion = db.Column(db.Text)
+    fecha = db.Column(db.DateTime, nullable=False)
+    lugar = db.Column(db.String(200))
+    cupo_maximo = db.Column(db.Integer, nullable=False)
+
+    creador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    creador = db.relationship('Usuario', backref='actividades_creadas')
+
+
+class InscripcionActividad(db.Model):
+    __tablename__ = 'inscripciones_actividad'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    actividad_id = db.Column(db.Integer, db.ForeignKey('actividades_caceria.id'), nullable=False)
+
+    usuario = db.relationship('Usuario', backref='inscripciones')
+    actividad = db.relationship('ActividadCaceria', backref='inscripciones')
+
+    __table_args__ = (db.UniqueConstraint('usuario_id', 'actividad_id', name='_usuario_actividad_uc'),)
+
+
+class ValoracionActividad(db.Model):
+    __tablename__ = 'valoraciones_actividad'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    actividad_id = db.Column(db.Integer, db.ForeignKey('actividades_caceria.id'), nullable=False)
+    puntuacion = db.Column(db.Integer, nullable=False)  # Por ejemplo, de 1 a 5
+    comentario = db.Column(db.Text)
+
+    usuario = db.relationship('Usuario', backref='valoraciones')
+    actividad = db.relationship('ActividadCaceria', backref='valoraciones')
+
+    __table_args__ = (db.UniqueConstraint('usuario_id', 'actividad_id', name='_usuario_valoracion_uc'),)
+
+class MensajeContacto(db.Model):
+    __tablename__ = 'mensajes_contacto'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    correo = db.Column(db.String(100), nullable=False)
+    mensaje = db.Column(db.Text, nullable=False)
+    fecha_envio = db.Column(db.DateTime, default=db.func.current_timestamp())
+    leido = db.Column(db.Boolean, default=False)
