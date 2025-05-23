@@ -99,10 +99,10 @@ class ActividadCaceria(db.Model):
     fecha = db.Column(db.DateTime, nullable=False)
     lugar = db.Column(db.String(200))
     cupo_maximo = db.Column(db.Integer, nullable=False)
+    imagen_url = db.Column(db.String(300))
 
     creador_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     creador = db.relationship('Usuario', backref='actividades_creadas')
-
 
 class InscripcionActividad(db.Model):
     __tablename__ = 'inscripciones_actividad'
