@@ -1,8 +1,8 @@
 from flask import request, jsonify
 from models import Usuario
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from services.caceria_service import inscribirse_actividad, quitar_inscripcion, valorar_actividad, \
-    obtener_todas_actividades, obtener_actividades_de_usuario
+from services.caceria_service import inscribirse_actividad, valorar_actividad, \
+    obtener_todas_actividades, obtener_actividades_de_usuario, eliminar_inscripcion, crear_actividad_db
 
 
 @jwt_required()
@@ -20,7 +20,7 @@ def quitar_inscripcion():
     data = request.get_json()
     usuario_id = get_jwt_identity()
     try:
-        quitar_inscripcion(usuario_id, data["actividad_id"])
+        eliminar_inscripcion(usuario_id, data["actividad_id"])
         return jsonify({"message": "Inscripción eliminada"}), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -50,15 +50,18 @@ def crear_actividad():
         return jsonify({"error": "No autorizado"}), 403
 
     try:
-        actividad = crear_actividad(
-            data["nombre"],
+        actividad = crear_actividad_db(
+            data["titulo"],
             data["descripcion"],
             data["fecha"],
-            data["limite_participantes"]
+            data["cupo_maximo"],
+            usuario_id,
+            data.get("imagen_url")
         )
         return jsonify({"message": "Actividad creada", "id": actividad.id}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 
 @jwt_required(optional=True)
 def listar_actividades():
@@ -66,11 +69,12 @@ def listar_actividades():
     resultado = [
         {
             "id": a.id,
-            "nombre": a.nombre,
+            "titulo": a.titulo,
             "descripcion": a.descripcion,
             "fecha": a.fecha.isoformat(),
-            "limite_participantes": a.limite_participantes,
-            "inscritos": len(a.inscripciones)
+            "cupo_maximo": a.cupo_maximo,
+            "inscritos": len(a.inscripciones),
+            "imagen_url": a.imagen_url
         }
         for a in actividades
     ]
@@ -84,10 +88,13 @@ def listar_actividades_usuario():
     resultado = [
         {
             "id": a.id,
-            "nombre": a.nombre,
+            "titulo": a.titulo,
             "descripcion": a.descripcion,
             "fecha": a.fecha.isoformat(),
-            "valoracion": next((i.valoracion for i in a.inscripciones if i.usuario_id == usuario_id), None)
+            "valoracion": next(
+                (v.puntuacion for v in a.valoraciones if v.usuario_id == usuario_id), None
+            ),
+            "imagen_url": a.imagen_url
         }
         for a in actividades
     ]
