@@ -10,6 +10,9 @@ from config import Config
 from models import db
 from routes.auth_routes import auth_bp
 from flask_cors import CORS
+
+from routes.group_routes import group_bp
+from routes.stats_routes import stats_bp
 from routes.user_routes import user_bp
 
 
@@ -31,6 +34,9 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(user_bp, url_prefix="/usuarios")
 app.register_blueprint(caceria_bp, url_prefix="/caceria")
 app.register_blueprint(contacto_bp, url_prefix="/contacto")
+app.register_blueprint(stats_bp, url_prefix="/stats")
+app.register_blueprint(group_bp, url_prefix="/group")
+
 
 if __name__ == "__main__":
     app.run(debug=True)

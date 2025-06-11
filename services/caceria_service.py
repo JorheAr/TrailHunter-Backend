@@ -1,29 +1,27 @@
-from models import db, ActividadCaceria, InscripcionActividad, ValoracionActividad
+from models import db, ActividadCaceria, InscripcionActividad, ValoracionActividad, ComentarioActividad
 from datetime import datetime
 
 
 def inscribirse_actividad(usuario_id, actividad_id):
     actividad = ActividadCaceria.query.get(actividad_id)
-    if not actividad:
-        raise ValueError("Actividad no encontrada")
+    if actividad is None:
+        raise Exception("Actividad no encontrada")
 
-    if datetime.utcnow() > actividad.fecha:
-        raise ValueError("La actividad ya ha ocurrido")
-
-    if len(actividad.participantes) >= actividad.limite_participantes:
-        raise ValueError("La actividad ya está llena")
+    # Aquí está la clave: cambiar participantes por inscripciones
+    if len(actividad.inscripciones) >= actividad.cupo_maximo:
+        raise Exception("Límite de participantes alcanzado")
 
     ya_inscrito = InscripcionActividad.query.filter_by(usuario_id=usuario_id, actividad_id=actividad_id).first()
     if ya_inscrito:
-        raise ValueError("Ya estás inscrito")
+        raise Exception("Usuario ya inscrito en esta actividad")
 
-    inscripcion = InscripcionActividad(usuario_id=usuario_id, actividad_id=actividad_id)
-    db.session.add(inscripcion)
+    nueva_inscripcion = InscripcionActividad(usuario_id=usuario_id, actividad_id=actividad_id)
+    db.session.add(nueva_inscripcion)
     db.session.commit()
-    return inscripcion
 
+    return nueva_inscripcion
 
-def quitar_inscripcion(usuario_id, actividad_id):
+def eliminar_inscripcion(usuario_id, actividad_id):
     inscripcion = InscripcionActividad.query.filter_by(usuario_id=usuario_id, actividad_id=actividad_id).first()
     if not inscripcion:
         raise ValueError("No estás inscrito")
@@ -51,16 +49,20 @@ def valorar_actividad(usuario_id, actividad_id, puntuacion, comentario):
     db.session.commit()
     return valoracion
 
-def crear_actividad(nombre, descripcion, fecha, limite_participantes):
+def crear_actividad_db(titulo, descripcion, fecha, lugar, cupo_maximo, creador_id, imagen_url=None):
     nueva_actividad = ActividadCaceria(
-        nombre=nombre,
+        titulo=titulo,
         descripcion=descripcion,
         fecha=fecha,
-        limite_participantes=limite_participantes
+        lugar=lugar,
+        cupo_maximo=cupo_maximo,
+        imagen_url=imagen_url,
+        creador_id=creador_id
     )
     db.session.add(nueva_actividad)
     db.session.commit()
     return nueva_actividad
+
 
 def obtener_todas_actividades():
     return ActividadCaceria.query.all()
@@ -68,3 +70,16 @@ def obtener_todas_actividades():
 def obtener_actividades_de_usuario(usuario_id):
     return ActividadCaceria.query.join(InscripcionActividad).filter(InscripcionActividad.usuario_id == usuario_id).all()
 
+def agregar_comentario(actividad_id, usuario_id, texto):
+    comentario = ComentarioActividad(
+        actividad_id=actividad_id,
+        usuario_id=usuario_id,
+        texto=texto
+    )
+    db.session.add(comentario)
+    db.session.commit()
+    return comentario
+
+
+def obtener_comentarios_actividad(actividad_id):
+    return ComentarioActividad.query.filter_by(actividad_id=actividad_id).order_by(ComentarioActividad.fecha_creacion.desc()).all()
