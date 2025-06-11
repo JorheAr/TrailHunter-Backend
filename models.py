@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -131,6 +133,19 @@ class ValoracionActividad(db.Model):
 
     __table_args__ = (db.UniqueConstraint('usuario_id', 'actividad_id', name='_usuario_valoracion_uc'),)
 
+class ComentarioActividad(db.Model):
+    __tablename__ = 'comentarios_actividad'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    actividad_id = db.Column(db.Integer, db.ForeignKey('actividades_caceria.id'), nullable=False)
+    texto = db.Column(db.Text, nullable=False)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship('Usuario', backref='comentarios_actividad')
+    actividad = db.relationship('ActividadCaceria', backref='comentarios')
+
+
 class MensajeContacto(db.Model):
     __tablename__ = 'mensajes_contacto'
 
@@ -140,3 +155,70 @@ class MensajeContacto(db.Model):
     mensaje = db.Column(db.Text, nullable=False)
     fecha_envio = db.Column(db.DateTime, default=db.func.current_timestamp())
     leido = db.Column(db.Boolean, default=False)
+
+class Grupo(db.Model):
+    __tablename__ = 'grupos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    descripcion = db.Column(db.Text)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+    imagen_url = db.Column(db.String(300))
+
+    miembros = db.relationship('MiembroGrupo', back_populates='grupo', cascade='all, delete-orphan')
+    publicaciones = db.relationship('PublicacionGrupo', back_populates='grupo', cascade='all, delete-orphan')
+
+class MiembroGrupo(db.Model):
+    __tablename__ = 'miembros_grupo'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos.id'), nullable=False)
+    rol = db.Column(db.String(20), nullable=False, default='miembro')  # 'miembro' o 'admin'
+    fecha_union = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship('Usuario', backref=db.backref('miembros_grupo', cascade='all, delete-orphan'))
+    grupo = db.relationship('Grupo', back_populates='miembros')
+
+class PublicacionGrupo(db.Model):
+    __tablename__ = 'publicaciones_grupo'
+
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(255), nullable=False)
+    contenido = db.Column(db.Text, nullable=False)
+    imagen = db.Column(db.String(255))  # URL o ruta de la imagen
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos.id'), nullable=False)
+    autor_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+
+    grupo = db.relationship('Grupo', back_populates='publicaciones')
+    autor = db.relationship('Usuario', backref=db.backref('publicaciones_grupo', cascade='all, delete-orphan'))
+
+    likes = db.relationship('LikePublicacionGrupo', back_populates='publicacion', cascade='all, delete-orphan')
+
+class LikePublicacionGrupo(db.Model):
+    __tablename__ = 'likes_publicaciones_grupo'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    publicacion_id = db.Column(db.Integer, db.ForeignKey('publicaciones_grupo.id'), nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship('Usuario', backref=db.backref('likes_publicaciones_grupo', cascade='all, delete-orphan'))
+    publicacion = db.relationship('PublicacionGrupo', back_populates='likes')
+
+class ComentarioPublicacionGrupo(db.Model):
+    __tablename__ = 'comentarios_publicaciones_grupo'
+
+    id = db.Column(db.Integer, primary_key=True)
+    texto = db.Column(db.Text, nullable=False)
+    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow)
+
+    autor_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    publicacion_id = db.Column(db.Integer, db.ForeignKey('publicaciones_grupo.id'), nullable=False)
+
+    autor = db.relationship('Usuario',
+                            backref=db.backref('comentarios_publicaciones_grupo', cascade='all, delete-orphan'))
+    publicacion = db.relationship('PublicacionGrupo',
+                                    backref=db.backref('comentarios', cascade='all, delete-orphan'))

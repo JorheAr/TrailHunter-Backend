@@ -20,5 +20,3 @@ user_bp.route("/me", methods=["GET"])(obtener_usuario_actual)
 user_bp.route("/verify-email", methods=["POST"])(verify_email)
 user_bp.route("/all", methods=["GET"])(obtener_usuarios)
 user_bp.route("/<int:user_id>", methods=["GET"])(obtener_usuario_por_id)
-
-

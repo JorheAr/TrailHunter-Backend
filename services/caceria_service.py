@@ -1,4 +1,4 @@
-from models import db, ActividadCaceria, InscripcionActividad, ValoracionActividad
+from models import db, ActividadCaceria, InscripcionActividad, ValoracionActividad, ComentarioActividad
 from datetime import datetime
 
 
@@ -49,11 +49,12 @@ def valorar_actividad(usuario_id, actividad_id, puntuacion, comentario):
     db.session.commit()
     return valoracion
 
-def crear_actividad_db(titulo, descripcion, fecha, cupo_maximo, creador_id, imagen_url=None):
+def crear_actividad_db(titulo, descripcion, fecha, lugar, cupo_maximo, creador_id, imagen_url=None):
     nueva_actividad = ActividadCaceria(
         titulo=titulo,
         descripcion=descripcion,
         fecha=fecha,
+        lugar=lugar,
         cupo_maximo=cupo_maximo,
         imagen_url=imagen_url,
         creador_id=creador_id
@@ -69,3 +70,16 @@ def obtener_todas_actividades():
 def obtener_actividades_de_usuario(usuario_id):
     return ActividadCaceria.query.join(InscripcionActividad).filter(InscripcionActividad.usuario_id == usuario_id).all()
 
+def agregar_comentario(actividad_id, usuario_id, texto):
+    comentario = ComentarioActividad(
+        actividad_id=actividad_id,
+        usuario_id=usuario_id,
+        texto=texto
+    )
+    db.session.add(comentario)
+    db.session.commit()
+    return comentario
+
+
+def obtener_comentarios_actividad(actividad_id):
+    return ComentarioActividad.query.filter_by(actividad_id=actividad_id).order_by(ComentarioActividad.fecha_creacion.desc()).all()

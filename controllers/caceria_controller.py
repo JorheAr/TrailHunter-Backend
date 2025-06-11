@@ -2,7 +2,8 @@ from flask import request, jsonify
 from models import Usuario
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.caceria_service import inscribirse_actividad, valorar_actividad, \
-    obtener_todas_actividades, obtener_actividades_de_usuario, eliminar_inscripcion, crear_actividad_db
+    obtener_todas_actividades, obtener_actividades_de_usuario, eliminar_inscripcion, crear_actividad_db, \
+    obtener_comentarios_actividad, agregar_comentario
 
 
 @jwt_required()
@@ -54,6 +55,7 @@ def crear_actividad():
             data["titulo"],
             data["descripcion"],
             data["fecha"],
+            data["lugar"],
             data["cupo_maximo"],
             usuario_id,
             data.get("imagen_url")
@@ -73,6 +75,7 @@ def listar_actividades():
             "descripcion": a.descripcion,
             "fecha": a.fecha.isoformat(),
             "cupo_maximo": a.cupo_maximo,
+            "lugar": a.lugar,
             "inscritos": len(a.inscripciones),
             "imagen_url": a.imagen_url
         }
@@ -99,3 +102,26 @@ def listar_actividades_usuario():
         for a in actividades
     ]
     return jsonify(resultado), 200
+
+def crear_comentario(actividad_id, data, usuario_actual):
+    texto = data.get('texto')
+    if not texto:
+        return {'error': 'Texto requerido'}, 400
+
+    comentario = agregar_comentario(actividad_id, usuario_actual.id, texto)
+    return {
+        'id': comentario.id,
+        'texto': comentario.texto,
+        'fecha_creacion': comentario.fecha_creacion.isoformat(),
+        'autor': usuario_actual.username
+    }, 201
+
+
+def listar_comentarios(actividad_id):
+    comentarios = obtener_comentarios_actividad(actividad_id)
+    return [{
+        'id': c.id,
+        'texto': c.texto,
+        'fecha_creacion': c.fecha_creacion.isoformat(),
+        'autor': c.usuario.username
+    } for c in comentarios]
